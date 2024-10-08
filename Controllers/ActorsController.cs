@@ -57,6 +57,9 @@ namespace MovieActorManager.Controllers
             actorDetailsVM.movies = movies;
 
             List<string> redditPosts = await SearchRedditAsync(actor.Name);
+            Console.WriteLine($"Reddit Posts Count: {redditPosts.Count}"); // Log count here
+
+
 
             // Sentiment analysis setup
             SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
@@ -82,7 +85,7 @@ namespace MovieActorManager.Controllers
             actorDetailsVM.OverallSentiment = overallSentiment;
 
             actorDetailsVM.OverallSentimentCategory = CategorizeSentiment(actorDetailsVM.OverallSentiment);
-
+            Console.WriteLine($"SentimentResults Count: {actorDetailsVM.SentimentResults.Count}");
             return View(actorDetailsVM);
         }
 
@@ -90,57 +93,57 @@ namespace MovieActorManager.Controllers
         public static readonly HttpClient client = new HttpClient();
         [HttpGet]
         [HttpPost]
-       public static async Task<List<string>> SearchRedditAsync(string searchQuery)
-{
-    var returnList = new List<string>();
-    var json = "";
-
-    using (HttpClient client = new HttpClient())
-    {
-        // Use a more specific and compliant User-Agent
-        client.DefaultRequestHeaders.Add("User-Agent", "YourAppName/1.0 by YourUsername");
-        try
+        public static async Task<List<string>> SearchRedditAsync(string searchQuery)
         {
-            json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
-        }
-        catch (HttpRequestException ex)
-        {
-            // Log or handle the exception accordingly
-            Console.WriteLine($"Request failed: {ex.Message}");
-            return returnList; // Return an empty list on failure
-        }
-    }
+            var returnList = new List<string>();
+            var json = "";
 
-    // Parse the JSON response
-    JsonDocument doc = JsonDocument.Parse(json);
-    JsonElement dataElement = doc.RootElement.GetProperty("data");
-    JsonElement childrenElement = dataElement.GetProperty("children");
-
-    foreach (JsonElement child in childrenElement.EnumerateArray())
-    {
-        if (child.TryGetProperty("data", out JsonElement data))
-        {
-            if (data.TryGetProperty("selftext", out JsonElement selftext))
+            using (HttpClient client = new HttpClient())
             {
-                string selftextValue = selftext.GetString();
-                if (!string.IsNullOrEmpty(selftextValue))
+                // Use a more specific and compliant User-Agent
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+                try
                 {
-                    returnList.Add(selftextValue);
+                    json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
                 }
-                else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
+                catch (HttpRequestException ex)
                 {
-                    string titleValue = title.GetString();
-                    if (!string.IsNullOrEmpty(titleValue))
+                    // Log or handle the exception accordingly
+                    Console.WriteLine($"Request failed: {ex.Message}");
+                    return returnList; // Return an empty list on failure
+                }
+            }
+
+            // Parse the JSON response
+            JsonDocument doc = JsonDocument.Parse(json);
+            JsonElement dataElement = doc.RootElement.GetProperty("data");
+            JsonElement childrenElement = dataElement.GetProperty("children");
+
+            foreach (JsonElement child in childrenElement.EnumerateArray())
+            {
+                if (child.TryGetProperty("data", out JsonElement data))
+                {
+                    if (data.TryGetProperty("selftext", out JsonElement selftext))
                     {
-                        returnList.Add(titleValue);
+                        string selftextValue = selftext.GetString();
+                        if (!string.IsNullOrEmpty(selftextValue))
+                        {
+                            returnList.Add(selftextValue);
+                        }
+                        else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
+                        {
+                            string titleValue = title.GetString();
+                            if (!string.IsNullOrEmpty(titleValue))
+                            {
+                                returnList.Add(titleValue);
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    return returnList;
-}
+            return returnList;
+        }
 
 
         private string CategorizeSentiment(double score)
