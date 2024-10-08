@@ -86,6 +86,10 @@ namespace MovieActorManager.Controllers
             return View(movieDetailsVM);
         }
 
+        public static readonly HttpClient client = new HttpClient();
+        [HttpGet]
+        [HttpPost]
+
         public static async Task<List<string>> SearchRedditAsync(string searchQuery)
         {
             var returnList = new List<string>();

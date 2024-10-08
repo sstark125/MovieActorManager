@@ -6,6 +6,7 @@
       "dynamicId": null
     },
     "mssql2": {
+      "ignored": "true",
       "type": "mssql",
       "connectionId": "studentdbfall2024.database.windows.net"
     }
