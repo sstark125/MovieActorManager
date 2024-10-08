@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome to MovieActorManager!</h1>
+    <p class="lead">Your ultimate destination for managing movie and actor data.</p>
+
+    <p>
+        MovieActorManager is designed to help movie enthusiasts, researchers, and casual users easily access, manage, and share information about their favorite movies and actors.
+    </p>
+
+    <h3>Key Features:</h3>
+    <ul class="list-unstyled">
+        <li>🔍 Browse through an extensive database of movies and actors.</li>
+        <li>➕ Easily add new actors and movies to the system.</li>
+        <li>✏️ Edit and update existing actor and movie details.</li>
+        <li>❌ Remove entries that are no longer relevant.</li>
+    </ul>
+
+    <p>
+        Ready to dive in? Click on the links below to start exploring:
+    </p>
+
+    <p>
+        <a class="btn btn-primary" href="@Url.Action("Index", "Actors")">View Actors</a>
+        <a class="btn btn-secondary" href="@Url.Action("Index", "Movies")">View Movies</a>
+    </p>
+</div>

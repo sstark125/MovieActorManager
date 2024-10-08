@@ -1,0 +1,155 @@
+﻿@model MovieActorManager.Models.MovieDetailsVM
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Movie</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.movie.Title)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.movie.Title)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.movie.IMDBLink)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.movie.IMDBLink)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.movie.Genre)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.movie.Genre)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.movie.YearOfRelease)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.movie.YearOfRelease)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.movie.PosterUrl)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.movie.PosterUrl)
+        </dd>
+        <dt class="col-sm-2">
+            Movie Image
+        </dt>
+        <dd class="col-sm-10">
+            @if (Model.movie.MovieImage != null && Model.movie.MovieImage.Length > 0)
+            {
+                <img height="150" src="@Url.Action("GetMoviePhoto", "Movies", new { id = Model.movie.Id })" />
+            }
+            else
+            {
+                <span>No image available</span>
+            }
+        </dd>
+    </dl>
+</div>
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.movie.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<h1>Cast</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th>
+                Gender
+            </th>
+            <th>
+                Age
+            </th>
+            <th>
+                IMDB Link
+            </th>
+            <th>
+                Picture
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.actors)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Gender)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Age)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.IMDBLink)
+                </td>
+                <td>
+                    @if (item.ActorImage != null && item.ActorImage.Length > 0)
+                    {
+                        <img height="150" src="@Url.Action("GetActorPhoto", "Actors", new { id = item.Id })" />
+                    }
+                    else
+                    {
+                        <span>No image available</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-controller="Actors" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-controller="Actors" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-controller="Actors" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<!-- Sentiment Analysis Section -->
+<h1>Reddit Sentiment Analysis</h1>
+
+<h3>
+    Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
+</h3>
+<h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
+    @Model.OverallSentimentCategory
+</h3>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Reddit Post</th>
+            <th>Sentiment Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.SentimentResults)
+        {
+            <tr>
+                <td>
+                    <div style="max-width: 300px;">
+                        @item.Item1 <!-- Reddit post content -->
+                    </div>
+                </td>
+                <td>
+                    @item.Item2.ToString("F2") <!-- Sentiment score -->
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

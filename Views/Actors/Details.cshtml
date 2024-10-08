@@ -1,0 +1,150 @@
+﻿@model MovieActorManager.Models.ActorDetailsVM
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Actor</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.actor.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.actor.Name)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.actor.Gender)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.actor.Gender)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.actor.Age)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.actor.Age)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.actor.IMDBLink)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.actor.IMDBLink)
+        </dd>
+        <dt class="col-sm-2">
+            Photo
+        </dt>
+        <dd class="col-sm-10">
+            @if (Model.actor.ActorImage != null && Model.actor.ActorImage.Length > 0)
+            {
+                <img height="150" src="@Url.Action("GetActorPhoto", "Actors", new { id = Model.actor.Id })" />
+            }
+            else
+            {
+                <span>No image available</span>
+            }
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.actor.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<h1>Movies</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Title
+            </th>
+            <th>
+                IMDB Link
+            </th>
+            <th>
+                Genre
+            </th>
+            <th>
+                Release Date
+            </th>
+            <th>
+                Poster
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.movies)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Title)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.IMDBLink)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Genre)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.YearOfRelease)
+                </td>
+                <td>
+                    @if (item.MovieImage != null && item.MovieImage.Length > 0)
+                    {
+                        <img height="150" src="@Url.Action("GetMoviePhoto", "Movies", new { id = item.Id })" />
+                    }
+                    else
+                    {
+                        <span>No image available</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-controller="Movies" asp-route-id="@item.Id">Edit</a> |
+                    <a asp-action="Details" asp-controller="Movies" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-controller="Movies" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+
+<!-- Sentiment Analysis Section -->
+<h1>Reddit Sentiment Analysis</h1>
+
+<h3>
+    Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
+</h3>
+<h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
+    @Model.OverallSentimentCategory
+</h3>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Reddit Post</th>
+            <th>Sentiment Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.SentimentResults)
+        {
+            <tr>
+                <td>
+                    <div style="max-width: 300px;">
+                        @item.Item1 <!-- Reddit post content -->
+                    </div>
+                </td>
+                <td>
+                    @item.Item2.ToString("F2") <!-- Sentiment score -->
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
