@@ -16,8 +16,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.5" />
     <PackageReference Include="VaderSharp2" Version="3.3.2.1" />
   </ItemGroup>
-
-  <ItemGroup>
+	<ItemGroup>
     <Folder Include="wwwroot\lib\jquery-ui\" />
   </ItemGroup>
 
