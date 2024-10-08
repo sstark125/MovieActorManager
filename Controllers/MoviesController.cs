@@ -99,7 +99,7 @@ namespace MovieActorManager.Controllers
             {
                 using (WebClient wc = new WebClient())
                 {
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("YourAppName/1.0");
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
                     var json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
 
                     JsonDocument doc = JsonDocument.Parse(json);

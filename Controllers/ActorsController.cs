@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
@@ -96,50 +97,51 @@ namespace MovieActorManager.Controllers
         public static async Task<List<string>> SearchRedditAsync(string searchQuery)
         {
             var returnList = new List<string>();
-            var json = "";
 
-            using (HttpClient client = new HttpClient())
+            try
             {
-                // Use a more specific and compliant User-Agent
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
-                try
+                using (WebClient wc = new WebClient())
                 {
-                    json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
-                }
-                catch (HttpRequestException ex)
-                {
-                    // Log or handle the exception accordingly
-                    Console.WriteLine($"Request failed: {ex.Message}");
-                    return returnList; // Return an empty list on failure
-                }
-            }
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                    var json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
 
-            // Parse the JSON response
-            JsonDocument doc = JsonDocument.Parse(json);
-            JsonElement dataElement = doc.RootElement.GetProperty("data");
-            JsonElement childrenElement = dataElement.GetProperty("children");
+                    JsonDocument doc = JsonDocument.Parse(json);
+                    JsonElement dataElement = doc.RootElement.GetProperty("data");
+                    JsonElement childrenElement = dataElement.GetProperty("children");
 
-            foreach (JsonElement child in childrenElement.EnumerateArray())
-            {
-                if (child.TryGetProperty("data", out JsonElement data))
-                {
-                    if (data.TryGetProperty("selftext", out JsonElement selftext))
+                    foreach (JsonElement child in childrenElement.EnumerateArray())
                     {
-                        string selftextValue = selftext.GetString();
-                        if (!string.IsNullOrEmpty(selftextValue))
+                        if (child.TryGetProperty("data", out JsonElement data))
                         {
-                            returnList.Add(selftextValue);
-                        }
-                        else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
-                        {
-                            string titleValue = title.GetString();
-                            if (!string.IsNullOrEmpty(titleValue))
+                            if (data.TryGetProperty("selftext", out JsonElement selftext))
                             {
-                                returnList.Add(titleValue);
+                                string selftextValue = selftext.GetString();
+                                if (!string.IsNullOrEmpty(selftextValue))
+                                {
+                                    returnList.Add(selftextValue);
+                                }
+                                else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
+                                {
+                                    string titleValue = title.GetString();
+                                    if (!string.IsNullOrEmpty(titleValue))
+                                    {
+                                        returnList.Add(titleValue);
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (HttpRequestException httpRequestException)
+            {
+                Console.WriteLine($"HTTP Request failed: {httpRequestException.Message}");
+                // Optionally, log this exception to Azure Application Insights
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                // Optionally, log this exception to Azure Application Insights
             }
 
             return returnList;
