@@ -65,21 +65,11 @@
 <table class="table">
     <thead>
         <tr>
-            <th>
-                Name
-            </th>
-            <th>
-                Gender
-            </th>
-            <th>
-                Age
-            </th>
-            <th>
-                IMDB Link
-            </th>
-            <th>
-                Picture
-            </th>
+            <th>Name</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>IMDB Link</th>
+            <th>Picture</th>
             <th></th>
         </tr>
     </thead>
@@ -88,18 +78,10 @@
 
         {
             <tr>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Name)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Gender)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Age)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.IMDBLink)
-                </td>
+                <td>@Html.DisplayFor(modelItem => item.Name)</td>
+                <td>@Html.DisplayFor(modelItem => item.Gender)</td>
+                <td>@Html.DisplayFor(modelItem => item.Age)</td>
+                <td>@Html.DisplayFor(modelItem => item.IMDBLink)</td>
                 <td>
                     @if (item.ActorImage != null && item.ActorImage.Length > 0)
                     {
@@ -120,38 +102,47 @@
     </tbody>
 </table>
 
-
 <!-- Sentiment Analysis Section -->
 <h1>Reddit Sentiment Analysis</h1>
 
-<h3>
-    Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
-</h3>
-<h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
-    @Model.OverallSentimentCategory
-</h3>
+@if (Model.SentimentResults != null && Model.SentimentResults.Any() && Model.SentimentResults[0].Item1.StartsWith("Error"))
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Reddit Post</th>
-            <th>Sentiment Score</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.SentimentResults)
+{
+    <div class="alert alert-danger">
+        <strong>Error:</strong> Azure is Blocked by Reddit API
+    </div>
+}
 
-        {
+else
+
+{
+    <h3>
+        Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
+    </h3>
+    <h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
+        @Model.OverallSentimentCategory
+    </h3>
+
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td>
-                    <div style="max-width: 300px;">
-                        @item.Item1 <!-- Reddit post content -->
-                    </div>
-                </td>
-                <td>
-                    @item.Item2.ToString("F2") <!-- Sentiment score -->
-                </td>
+                <th>Reddit Post</th>
+                <th>Sentiment Score</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.SentimentResults)
+
+            {
+                <tr>
+                    <td>
+                        <div style="max-width: 300px;">
+                            @item.Item1 <!-- Reddit post content -->
+                        </div>
+                    </td>
+                    <td>@item.Item2.ToString("F2") <!-- Sentiment score --></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

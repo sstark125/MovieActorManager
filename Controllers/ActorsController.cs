@@ -37,58 +37,72 @@ namespace MovieActorManager.Controllers
                 return NotFound();
             }
 
-            var actor = await _context.Actor
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var actor = await _context.Actor.FirstOrDefaultAsync(m => m.Id == id);
             if (actor == null)
             {
                 return NotFound();
             }
 
-            ActorDetailsVM actorDetailsVM = new ActorDetailsVM();
-            actorDetailsVM.actor = actor;
+            // Initialize the ActorDetailsVM model
+            ActorDetailsVM actorDetailsVM = new ActorDetailsVM
+            {
+                actor = actor
+            };
 
-            //go get the movies from the db
-            var movies = new List<Movie>();
-            movies = await (from mv in _context.Movie
-                            join ma in _context.MovieActor on mv.Id equals ma.MovieId
-                            where ma.ActorId == id
-                            select mv)
-                           .ToListAsync();
+            // Get the movies for this actor
+            var movies = await (from mv in _context.Movie
+                                join ma in _context.MovieActor on mv.Id equals ma.MovieId
+                                where ma.ActorId == id
+                                select mv)
+                               .ToListAsync();
 
             actorDetailsVM.movies = movies;
 
+            // Fetch Reddit posts
             List<string> redditPosts = await SearchRedditAsync(actor.Name);
             Console.WriteLine($"Reddit Posts Count: {redditPosts.Count}"); // Log count here
 
-
-
-            // Sentiment analysis setup
-            SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
-            List<Tuple<string, double>> sentimentResults = new List<Tuple<string, double>>();
-            double totalSentiment = 0;
-            int validEntries = 0;
-
-            // Analyze sentiment for each Reddit post
-            foreach (var post in redditPosts)
+            // Check if there was an error fetching Reddit posts
+            if (redditPosts.Any(post => post.StartsWith("Error")))
             {
-                var sentiment = analyzer.PolarityScores(post);
-                if (sentiment.Compound != 0)  // Only include non-zero sentiment scores
+                // Display the error message and skip sentiment analysis
+                actorDetailsVM.SentimentResults = new List<Tuple<string, double>> { new Tuple<string, double>(redditPosts.First(), 0) };
+                actorDetailsVM.OverallSentiment = 0;
+                actorDetailsVM.OverallSentimentCategory = "Not Available";
+            }
+            else
+            {
+                // Sentiment analysis setup
+                SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
+                List<Tuple<string, double>> sentimentResults = new List<Tuple<string, double>>();
+                double totalSentiment = 0;
+                int validEntries = 0;
+
+                // Analyze sentiment for each Reddit post
+                foreach (var post in redditPosts)
                 {
-                    sentimentResults.Add(new Tuple<string, double>(post, sentiment.Compound));
-                    totalSentiment += sentiment.Compound;
-                    validEntries++;
+                    var sentiment = analyzer.PolarityScores(post);
+                    if (sentiment.Compound != 0)  // Only include non-zero sentiment scores
+                    {
+                        sentimentResults.Add(new Tuple<string, double>(post, sentiment.Compound));
+                        totalSentiment += sentiment.Compound;
+                        validEntries++;
+                    }
                 }
-            } 
 
-            // Calculate the overall sentiment
-            double overallSentiment = validEntries > 0 ? totalSentiment / validEntries : 0;
-            actorDetailsVM.SentimentResults = sentimentResults;
-            actorDetailsVM.OverallSentiment = overallSentiment;
+                // Calculate the overall sentiment
+                double overallSentiment = validEntries > 0 ? totalSentiment / validEntries : 0;
+                actorDetailsVM.SentimentResults = sentimentResults;
+                actorDetailsVM.OverallSentiment = overallSentiment;
 
-            actorDetailsVM.OverallSentimentCategory = CategorizeSentiment(actorDetailsVM.OverallSentiment);
+                // Categorize overall sentiment
+                actorDetailsVM.OverallSentimentCategory = CategorizeSentiment(actorDetailsVM.OverallSentiment);
+            }
+
             Console.WriteLine($"SentimentResults Count: {actorDetailsVM.SentimentResults.Count}");
             return View(actorDetailsVM);
         }
+
 
         //IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
         public static readonly HttpClient client = new HttpClient();
@@ -135,17 +149,19 @@ namespace MovieActorManager.Controllers
             }
             catch (HttpRequestException httpRequestException)
             {
+                // Indicate that Reddit API is not accessible from Azure
                 Console.WriteLine($"HTTP Request failed: {httpRequestException.Message}");
-                // Optionally, log this exception to Azure Application Insights
+                returnList.Add("Error: Unable to access Reddit API from this server.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
-                // Optionally, log this exception to Azure Application Insights
+                returnList.Add("Error: An unexpected issue occurred while trying to fetch Reddit data.");
             }
 
             return returnList;
         }
+
 
 
         private string CategorizeSentiment(double score)

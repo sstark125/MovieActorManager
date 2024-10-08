@@ -58,21 +58,11 @@
 <table class="table">
     <thead>
         <tr>
-            <th>
-                Title
-            </th>
-            <th>
-                IMDB Link
-            </th>
-            <th>
-                Genre
-            </th>
-            <th>
-                Release Date
-            </th>
-            <th>
-                Poster
-            </th>
+            <th>Title</th>
+            <th>IMDB Link</th>
+            <th>Genre</th>
+            <th>Release Date</th>
+            <th>Poster</th>
             <th></th>
         </tr>
     </thead>
@@ -115,33 +105,42 @@
 <!-- Sentiment Analysis Section -->
 <h1>Reddit Sentiment Analysis</h1>
 
-<h3>
-    Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
-</h3>
-<h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
-    @Model.OverallSentimentCategory
-</h3>
+@if (Model.SentimentResults != null && Model.SentimentResults.Any() && Model.SentimentResults[0].Item1.StartsWith("Error"))
+{
+    <div class="alert alert-danger">
+        <strong>Error:</strong> Azure is Blocked by Reddit API
+    </div>
+}
+else
+{
+    <h3>
+        Overall Sentiment Score: @Model.OverallSentiment.ToString("F2")
+    </h3>
+    <h3 style="color: @(Model.OverallSentiment >= 0 ? "green" : "red")">
+        @Model.OverallSentimentCategory
+    </h3>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Reddit Post</th>
-            <th>Sentiment Score</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model.SentimentResults)
-        {
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td>
-                    <div style="max-width: 300px;">
-                        @item.Item1 <!-- Reddit post content -->
-                    </div>
-                </td>
-                <td>
-                    @item.Item2.ToString("F2") <!-- Sentiment score -->
-                </td>
+                <th>Reddit Post</th>
+                <th>Sentiment Score</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.SentimentResults)
+            {
+                <tr>
+                    <td>
+                        <div style="max-width: 300px;">
+                            @item.Item1 <!-- Reddit post content -->
+                        </div>
+                    </td>
+                    <td>
+                        @item.Item2.ToString("F2") <!-- Sentiment score -->
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

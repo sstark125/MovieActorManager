@@ -38,59 +38,79 @@ namespace MovieActorManager.Controllers
                 return NotFound();
             }
 
-            var movie = await _context.Movie
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var movie = await _context.Movie.FirstOrDefaultAsync(m => m.Id == id);
             if (movie == null)
             {
                 return NotFound();
             }
 
-            MovieDetailsVM movieDetailsVM = new MovieDetailsVM();
-            movieDetailsVM.movie = movie;
+            // Initialize the MovieDetailsVM model
+            MovieDetailsVM movieDetailsVM = new MovieDetailsVM
+            {
+                movie = movie
+            };
 
-            //go get the actors from the db
-            var actors = new List<Actor>();
-            actors = await(from ac in _context.Actor
-                           join ma in _context.MovieActor on ac.Id equals ma.ActorId
-                           where ma.MovieId == id
-                           select ac).ToListAsync();
+            // Get the actors for this movie
+            var actors = await (from ac in _context.Actor
+                                join ma in _context.MovieActor on ac.Id equals ma.ActorId
+                                where ma.MovieId == id
+                                select ac)
+                               .ToListAsync();
 
             movieDetailsVM.actors = actors;
 
-            // Get Reddit posts related to the movie
+            // Fetch Reddit posts
             List<string> redditPosts = await SearchRedditAsync(movie.Title);
+            Console.WriteLine($"Reddit Posts Count: {redditPosts.Count}"); // Log count here
 
-            // Sentiment analysis setup
-            SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
-            List<Tuple<string, double>> sentimentResults = new List<Tuple<string, double>>();
-            double totalSentiment = 0;
-            int validEntries = 0;
-
-            // Analyze sentiment for each Reddit post
-            foreach (var post in redditPosts)
+            // Check if there was an error fetching Reddit posts
+            if (redditPosts.Any(post => post.StartsWith("Error")))
             {
-                var sentiment = analyzer.PolarityScores(post);
-                if (sentiment.Compound != 0)  // Only include non-zero sentiment scores
+                // Display the error message and skip sentiment analysis
+                movieDetailsVM.SentimentResults = new List<Tuple<string, double>> { new Tuple<string, double>(redditPosts.First(), 0) };
+                movieDetailsVM.OverallSentiment = 0;
+                movieDetailsVM.OverallSentimentCategory = "Not Available";
+            }
+            else
+            {
+                // Sentiment analysis setup
+                SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
+                List<Tuple<string, double>> sentimentResults = new List<Tuple<string, double>>();
+                double totalSentiment = 0;
+                int validEntries = 0;
+
+                // Analyze sentiment for each Reddit post
+                foreach (var post in redditPosts)
                 {
-                    sentimentResults.Add(new Tuple<string, double>(post, sentiment.Compound));
-                    totalSentiment += sentiment.Compound;
-                    validEntries++;
+                    var sentiment = analyzer.PolarityScores(post);
+                    if (sentiment.Compound != 0)  // Only include non-zero sentiment scores
+                    {
+                        sentimentResults.Add(new Tuple<string, double>(post, sentiment.Compound));
+                        totalSentiment += sentiment.Compound;
+                        validEntries++;
+                    }
                 }
+
+                // Calculate the overall sentiment
+                double overallSentiment = validEntries > 0 ? totalSentiment / validEntries : 0;
+                movieDetailsVM.SentimentResults = sentimentResults;
+                movieDetailsVM.OverallSentiment = overallSentiment;
+
+                // Categorize overall sentiment
+                movieDetailsVM.OverallSentimentCategory = CategorizeSentiment(movieDetailsVM.OverallSentiment);
             }
 
-            // Calculate the overall sentiment
-            double overallSentiment = validEntries > 0 ? totalSentiment / validEntries : 0;
-            movieDetailsVM.SentimentResults = sentimentResults;
-            movieDetailsVM.OverallSentiment = Math.Round(overallSentiment, 2);
-            movieDetailsVM.OverallSentimentCategory = CategorizeSentiment(overallSentiment);
-
             Console.WriteLine($"SentimentResults Count: {movieDetailsVM.SentimentResults.Count}");
-
             return View(movieDetailsVM);
         }
 
-        public static readonly HttpClient client = new HttpClient();
 
+
+        // IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+
+        public static readonly HttpClient client = new HttpClient();
+        [HttpGet]
+        [HttpPost]
         public static async Task<List<string>> SearchRedditAsync(string searchQuery)
         {
             var returnList = new List<string>();
@@ -132,17 +152,19 @@ namespace MovieActorManager.Controllers
             }
             catch (HttpRequestException httpRequestException)
             {
+                // Indicate that Reddit API is not accessible from Azure
                 Console.WriteLine($"HTTP Request failed: {httpRequestException.Message}");
-                // Optionally, log this exception to Azure Application Insights
+                returnList.Add("Error: Unable to access Reddit API from this server.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"An error occurred: {ex.Message}");
-                // Optionally, log this exception to Azure Application Insights
+                returnList.Add("Error: An unexpected issue occurred while trying to fetch Reddit data.");
             }
 
             return returnList;
         }
+
 
 
         private string CategorizeSentiment(double score)
