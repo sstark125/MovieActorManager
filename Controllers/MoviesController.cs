@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -83,49 +84,67 @@ namespace MovieActorManager.Controllers
             movieDetailsVM.OverallSentiment = Math.Round(overallSentiment, 2);
             movieDetailsVM.OverallSentimentCategory = CategorizeSentiment(overallSentiment);
 
+            Console.WriteLine($"SentimentResults Count: {movieDetailsVM.SentimentResults.Count}");
+
             return View(movieDetailsVM);
         }
 
         public static readonly HttpClient client = new HttpClient();
+
         [HttpGet]
         [HttpPost]
-
         public static async Task<List<string>> SearchRedditAsync(string searchQuery)
         {
             var returnList = new List<string>();
-            var json = "";
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("user-agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; .NET CLR 1.0.3705;)");
-                json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
-            }
 
-            JsonDocument doc = JsonDocument.Parse(json);
-            JsonElement dataElement = doc.RootElement.GetProperty("data");
-            JsonElement childrenElement = dataElement.GetProperty("children");
-
-            foreach (JsonElement child in childrenElement.EnumerateArray())
+            using(WebClient wc = new WebClient())
             {
-                if (child.TryGetProperty("data", out JsonElement data))
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                var json = await client.GetStringAsync("https://www.reddit.com/search.json?limit=100&q=" + HttpUtility.UrlEncode(searchQuery));
+
+                JsonDocument doc = JsonDocument.Parse(json);
+                JsonElement dataElement = doc.RootElement.GetProperty("data");
+                JsonElement childrenElement = dataElement.GetProperty("children");
+
+                foreach (JsonElement child in childrenElement.EnumerateArray())
                 {
-                    if (data.TryGetProperty("selftext", out JsonElement selftext))
+                    if (child.TryGetProperty("data", out JsonElement data))
                     {
-                        string selftextValue = selftext.GetString();
-                        if (!string.IsNullOrEmpty(selftextValue))
+                        if (data.TryGetProperty("selftext", out JsonElement selftext))
                         {
-                            returnList.Add(selftextValue);
-                        }
-                        else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
-                        {
-                            string titleValue = title.GetString();
-                            if (!string.IsNullOrEmpty(titleValue))
+                            string selftextValue = selftext.GetString();
+                            if (!string.IsNullOrEmpty(selftextValue))
                             {
-                                returnList.Add(titleValue);
+                                returnList.Add(selftextValue);
+                            }
+                            else if (data.TryGetProperty("title", out JsonElement title)) // Use title if selftext is empty
+                            {
+                                string titleValue = title.GetString();
+                                if (!string.IsNullOrEmpty(titleValue))
+                                {
+                                    returnList.Add(titleValue);
+                                }
                             }
                         }
                     }
                 }
             }
+            catch (HttpRequestException httpEx)
+            {
+                // Log the error message and handle it as appropriate
+                Console.WriteLine($"HTTP error occurred: {httpEx.Message}");
+            }
+            catch (JsonException jsonEx)
+            {
+                // Log JSON parsing errors
+                Console.WriteLine($"JSON error occurred: {jsonEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Handle other possible exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+
             return returnList;
         }
 
