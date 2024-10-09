@@ -328,8 +328,7 @@ namespace MovieActorManager.Controllers
                 return NotFound();
             }
 
-            var actor = await _context.Actor
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var actor = await _context.Actor.FirstOrDefaultAsync(m => m.Id == id);
             if (actor == null)
             {
                 return NotFound();
@@ -343,19 +342,39 @@ namespace MovieActorManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var actor = await _context.Actor.FindAsync(id);
-            if (actor != null)
+            try
             {
-                _context.Actor.Remove(actor);
-            }
+                var actor = await _context.Actor.FindAsync(id);
+                if (actor != null)
+                {
+                    // Check for foreign key constraints
+                    var hasMovies = await _context.MovieActor.AnyAsync(ma => ma.ActorId == id);
+                    if (hasMovies)
+                    {
+                        // If the actor is associated with any movies, throw an exception
+                        throw new Exception("This actor cannot be deleted because they are associated with one or more movies.");
+                    }
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+                    _context.Actor.Remove(actor);
+                    await _context.SaveChangesAsync();
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (optional, depending on your logging setup)
+                Console.WriteLine(ex.Message); // Replace with your logging mechanism
+
+                // Return to the Delete view with an alert
+                TempData["ErrorMessage"] = ex.Message; // Store the error message
+                return RedirectToAction(nameof(Delete), new { id });
+            }
         }
 
         private bool ActorExists(int id)
         {
             return _context.Actor.Any(e => e.Id == id);
         }
+
     }
 }

@@ -322,8 +322,7 @@ namespace MovieActorManager.Controllers
                 return NotFound();
             }
 
-            var movie = await _context.Movie
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var movie = await _context.Movie.FirstOrDefaultAsync(m => m.Id == id);
             if (movie == null)
             {
                 return NotFound();
@@ -337,15 +336,35 @@ namespace MovieActorManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var movie = await _context.Movie.FindAsync(id);
-            if (movie != null)
+            try
             {
-                _context.Movie.Remove(movie);
-            }
+                var movie = await _context.Movie.FindAsync(id);
+                if (movie != null)
+                {
+                    // Check for foreign key constraints
+                    var hasActors = await _context.MovieActor.AnyAsync(ma => ma.MovieId == id);
+                    if (hasActors)
+                    {
+                        // If the movie is associated with any actors, throw an exception
+                        throw new Exception("This movie cannot be deleted because it is associated with one or more actors.");
+                    }
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+                    _context.Movie.Remove(movie);
+                    await _context.SaveChangesAsync();
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (optional, depending on your logging setup)
+                Console.WriteLine(ex.Message); // Replace with your logging mechanism
+
+                // Return to the Delete view with an alert
+                TempData["ErrorMessage"] = ex.Message; // Store the error message
+                return RedirectToAction(nameof(Delete), new { id });
+            }
         }
+
 
         private bool MovieExists(int id)
         {
